@@ -74,6 +74,11 @@ def read_tensorflow_net(net_file, in_len, is_trained_with_pytorch):
     last_layer = None
     h,w,c = None, None, None
     is_conv = False
+
+    #sunbing
+    timestep = 7
+    is_vanilarnn = False
+
     while True:
         curr_line = net.readline()[:-1]
         if 'Normalize' in curr_line:
@@ -194,6 +199,10 @@ def read_tensorflow_net(net_file, in_len, is_trained_with_pytorch):
                 x = tf.nn.bias_add(x, b)
             else:
                 raise Exception("Unsupported activation: ", curr_line)
+        elif curr_line == "time_step: 7":
+            timestep = 7
+        elif curr_line == "Vanilla":
+            is_vanilarnn = True
         elif curr_line == "":
             break
         else:
@@ -201,7 +210,7 @@ def read_tensorflow_net(net_file, in_len, is_trained_with_pytorch):
         last_layer = curr_line
 
     model = x
-    return model, is_conv, mean, std
+    return model, is_conv, mean, std, is_vanilarnn, timestep
 
 
 def read_onnx_net(net_file):

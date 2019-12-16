@@ -87,7 +87,7 @@ class Analyzer:
         nub = []
         for i in range(1, len(self.ir_list)):
             if self.domain == 'deepzono' or self.domain == 'refinezono':
-                element = self.ir_list[i].transformer(self.nn, self.man, element, nlb,nub, self.relu_groups, self.domain=='refinezono', self.timeout_lp, self.timeout_milp)
+                element = self.ir_list[i].transformer(self.nn, self.man, element, nlb, nub, self.relu_groups, self.domain=='refinezono', self.timeout_lp, self.timeout_milp)
             else:
                 element = self.ir_list[i].transformer(self.nn, self.man, element, nlb, nub, self.relu_groups, self.domain=='refinepoly', self.timeout_lp, self.timeout_milp, self.use_area_heuristic)
 
