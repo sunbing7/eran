@@ -228,7 +228,7 @@ class DeeppolySigmoidNodeFirst(DeeppolyNode):
             abstract element after the transformer
             """
         ffn_handle_first_sigmoid_layer(man, element, *self.get_arguments())
-        #calc_bounds(man, element, nn, nlb, nub)
+        calc_bounds(man, element, nn, nlb, nub, relu_groups) #sunbing enable
         nn.ffn_counter+=1
         return element
 
