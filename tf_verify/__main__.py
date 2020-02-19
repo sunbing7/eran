@@ -12,7 +12,9 @@ from deepzono_milp import *
 import argparse
 from config import config
 
-
+#sunbing
+do_demo_test = 0
+do_vanilarnn = 1
 #ZONOTOPE_EXTENSION = '.zt'
 
 def str2bool(v):
@@ -122,7 +124,7 @@ else:
 dataset = args.dataset
 
 if zonotope_bool==False:
-   assert dataset in ['mnist','cifar10','acasxu'], "only mnist, cifar10, and acasxu datasets are supported"
+   assert dataset in ['mnist','cifar10','acasxu','demo_test','demo_test2','demo_test3'], "only mnist, cifar10, and acasxu datasets are supported"
 
 
 specnumber = 9
@@ -186,10 +188,29 @@ else:
             stds = [1]
     else:
         #sunbing
-        num_pixels = 176
-        #is_trained_with_pytorch = False
-        model, is_conv, means, stds, is_vanilarnn, timestep = read_tensorflow_net(netname, num_pixels, is_trained_with_pytorch)
-        #model, is_conv, means, stds = read_tensorflow_net(netname, num_pixels, is_trained_with_pytorch)
+        if do_demo_test == 1:
+            num_pixels = 4
+            is_trained_with_pytorch = False
+            model, is_conv, means, stds, is_vanilarnn, timestep = read_tensorflow_net(netname, num_pixels,
+                                                                                      is_trained_with_pytorch)
+
+        elif do_demo_test == 2:
+            num_pixels = 2
+            is_trained_with_pytorch = False
+            model, is_conv, means, stds, is_vanilarnn, timestep = read_tensorflow_net(netname, num_pixels,
+                                                                                      is_trained_with_pytorch)
+        elif do_demo_test == 3:
+            num_pixels = 2
+            is_trained_with_pytorch = False
+            model, is_conv, means, stds, is_vanilarnn, timestep = read_tensorflow_net(netname, num_pixels,
+                                                                                      is_trained_with_pytorch)
+        elif do_vanilarnn == 1:
+            is_trained_with_pytorch = True
+            num_pixels = 176
+            model, is_conv, means, stds, is_vanilarnn, timestep = read_tensorflow_net(netname, num_pixels,
+                                                                                      is_trained_with_pytorch)
+        else:
+            model, is_conv, means, stds = read_tensorflow_net(netname, num_pixels, is_trained_with_pytorch)
     eran = ERAN(model, is_onnx=is_onnx)
 
 if args.mean:
@@ -271,6 +292,15 @@ if(dataset=='mnist'):
 elif(dataset=='cifar10'):
     csvfile = open('../data/cifar10_test.csv', 'r')
     tests = csv.reader(csvfile, delimiter=',')
+elif(dataset=='demo_test'):#sunbing
+    csvfile = open('../data/demo_test.csv', 'r')
+    tests = csv.reader(csvfile, delimiter=',')
+elif (dataset == 'demo_test2'):  # sunbing
+    csvfile = open('../data/demo_test2.csv', 'r')
+    tests = csv.reader(csvfile, delimiter=',')
+elif (dataset == 'demo_test3'):  # sunbing
+    csvfile = open('../data/demo_test3.csv', 'r')
+    tests = csv.reader(csvfile, delimiter=',')
 else:
     specfile = '../data/acasxu/specs/acasxu_prop' + str(specnumber) +'_spec.txt'
     tests = open(specfile, 'r').read()
@@ -350,13 +380,14 @@ elif zonotope_bool:
          print("Failed")
 else:
     #sunbing
+
     label_out = []
     for i, test in enumerate(tests):
         if is_vanilarnn == True:
             if(dataset=='mnist'):
                 image_full= np.float64(test[1:len(test)])/np.float64(255)
-                nlb = np.asarray([[0]*64]*1)
-                nub = np.asarray([[0]*64]*1)
+                nlb = np.asarray([[-1]*64]*2)
+                nub = np.asarray([[-1]*64]*2)
                 for j in range(0, len(image_full), 112):
                     image = image_full[j:j + 112]
 
@@ -367,8 +398,8 @@ else:
                         normalize(specLB_img, means, stds)
                         normalize(specUB_img, means, stds)
 
-                    nlb_array = (np.asarray(nlb[0]))
-                    nub_array = (np.asarray(nub[0]))
+                    nlb_array = (np.asarray(nlb[1]))
+                    nub_array = (np.asarray(nub[1]))
 
                     specLB = np.concatenate((specLB_img, nlb_array), axis=0)
                     specUB = np.concatenate((specUB_img, nub_array), axis=0)
@@ -389,9 +420,7 @@ else:
                     #            print('True')
 
                 print("concrete ", nlb[-1])
-                # if(label == int(test[0])):
-                #sunbing
-                label_out.append(label);
+
                 if (label == int(test[0])):
                     perturbed_label = None
 
@@ -410,21 +439,21 @@ else:
                             specLB = np.clip(image - epsilon, -0.5, 0.5)
                             specUB = np.clip(image + epsilon, -0.5, 0.5)
                     if (is_trained_with_pytorch):
-                        normalize(specLB, means, stds)
-                        normalize(specUB, means, stds)
+                        normalize(image_full_LB, means, stds)
+                        normalize(image_full_UB, means, stds)
                     start = time.time()
 
                     #loop through all timesteps
-                    nlb = np.asarray([[0] * 64] * 1)
-                    nub = np.asarray([[0] * 64] * 1)
+                    nlb = np.asarray([[-1] * 64] * 2)
+                    nub = np.asarray([[-1] * 64] * 2)
                     for k in range(0, len(image_full_LB), 112):
                         #image = image_full[j:j + 112]
 
                         specLB_img = np.copy(image_full_LB[k:k + 112])
                         specUB_img = np.copy(image_full_UB[k:k + 112])
 
-                        nlb_array = (np.asarray(nlb[0]))
-                        nub_array = (np.asarray(nub[0]))
+                        nlb_array = (np.asarray(nlb[1]))
+                        nub_array = (np.asarray(nub[1]))
 
                         specLB = np.concatenate((specLB_img, nlb_array), axis=0)
                         specUB = np.concatenate((specUB_img, nub_array), axis=0)
@@ -466,6 +495,291 @@ else:
                           label)
                 total_images += 1
 
+            elif (dataset=='demo_test'):
+                image_full= np.float64(test[1:len(test)])
+                nlb = np.asarray([[0]*2]*2)
+                nub = np.asarray([[0]*2]*2)
+                for j in range(0, len(image_full), 2):
+                    image = image_full[j:j + 2]
+
+                    specLB_img = np.copy(image)
+                    specUB_img = np.copy(image)
+
+                    if is_trained_with_pytorch:
+                        normalize(specLB_img, means, stds)
+                        normalize(specUB_img, means, stds)
+
+                    nlb_array = (np.asarray(nlb[1]))
+                    nub_array = (np.asarray(nub[1]))
+
+                    specLB = np.concatenate((specLB_img, nlb_array), axis=0)
+                    specUB = np.concatenate((specUB_img, nub_array), axis=0)
+
+                    if j == 2 * 2:
+                        is_last_timestep = True
+                    else:
+                        is_last_timestep = False
+
+                    label, nn, nlb, nub = eran.analyze_box(specLB, specUB, init_domain(domain), args.timeout_lp,
+                                                           args.timeout_milp, args.use_area_heuristic)
+                    print(nlb)
+                    # for number in range(len(nub)):
+                    #    for element in range(len(nub[number])):
+                    #        if(nub[number][element]<=0):
+                    #            print('False')
+                    #        else:
+                    #            print('True')
+
+                print("concrete ", nlb[-1])
+                # if(label == int(test[0])):
+                #sunbing
+                label_out.append(label)
+                #if (label == int(test[0])):
+                if (1):
+                    perturbed_label = None
+
+                    #verify perturbed image
+
+                    if (dataset == 'demo_test'): #sunbing test mnist only
+                        image_full_LB = np.clip(image_full - epsilon, 0, 1)
+                        image_full_UB = np.clip(image_full + epsilon, 0, 1)
+                        #specLB = np.clip(image - epsilon, 0, 1)
+                        #specUB = np.clip(image + epsilon, 0, 1)
+                    else:
+                        if (is_trained_with_pytorch):
+                            specLB = np.clip(image - epsilon, 0, 1)
+                            specUB = np.clip(image + epsilon, 0, 1)
+                        else:
+                            specLB = np.clip(image - epsilon, -0.5, 0.5)
+                            specUB = np.clip(image + epsilon, -0.5, 0.5)
+                    if (is_trained_with_pytorch):
+                        normalize(specLB, means, stds)
+                        normalize(specUB, means, stds)
+                    start = time.time()
+
+                    #loop through all timesteps
+                    nlb = np.asarray([[0] * 2] * 2)
+                    nub = np.asarray([[0] * 2] * 2)
+                    for k in range(0, len(image_full_LB), 2):
+                        #image = image_full[j:j + 112]
+
+                        specLB_img = np.copy(image_full_LB[k:k + 2])
+                        specUB_img = np.copy(image_full_UB[k:k + 2])
+
+                        nlb_array = (np.asarray(nlb[1]))
+                        nub_array = (np.asarray(nub[1]))
+
+                        specLB = np.concatenate((specLB_img, nlb_array), axis=0)
+                        specUB = np.concatenate((specUB_img, nub_array), axis=0)
+
+
+                        perturbed_label, _, nlb, nub = eran.analyze_box(specLB, specUB, domain, args.timeout_lp,
+                                                                    args.timeout_milp, args.use_area_heuristic)
+
+
+
+                    print("nlb ", nlb[len(nlb) - 1], " nub ", nub[len(nub) - 1])
+                    if (perturbed_label == label):
+                        print("img", total_images, "Verified", label)
+                        verified_images += 1
+                    else:
+                        if complete == True:
+                            verified_flag, adv_image = verify_network_with_milp(nn, specLB, specUB, label, nlb, nub)
+                            if (verified_flag == True):
+                                print("img", total_images, "Verified", label)
+                                verified_images += 1
+                            else:
+                                print("img", total_images, "Failed")
+                                cex_label, _, _, _ = eran.analyze_box(adv_image, adv_image, 'deepzono',
+                                                                      args.timeout_lp, args.timeout_milp,
+                                                                      args.use_area_heuristic)
+                                if (cex_label != label):
+                                    if (is_trained_with_pytorch):
+                                        denormalize(adv_image, means, stds)
+                                    print("adversarial image ", adv_image, "cex label", cex_label, "correct label ",
+                                          label)
+                        else:
+                            print("img", total_images, "Failed")
+
+                    correctly_classified_images += 1
+                    end = time.time()
+                    print(end - start, "seconds")
+                else:
+                    print("img", total_images, "not considered, correct_label", int(test[0]), "classified label ",
+                          label)
+                total_images += 1
+
+        elif (dataset=='demo_test2'):
+            #if (dataset == 'mnist'):
+            image = np.float64(test[1:len(test)])
+            #else:
+            #    if is_trained_with_pytorch:
+            #        image = (np.float64(test[1:len(test)]) / np.float64(255))
+            #    else:
+            #        image = (np.float64(test[1:len(test)]) / np.float64(255)) - 0.5
+
+            specLB = np.copy(image)
+            specUB = np.copy(image)
+
+            if is_trained_with_pytorch:
+                normalize(specLB, means, stds)
+                normalize(specUB, means, stds)
+
+            label, nn, nlb, nub = eran.analyze_box(specLB, specUB, init_domain(domain), args.timeout_lp,
+                                                   args.timeout_milp, args.use_area_heuristic)
+            # for number in range(len(nub)):
+            #    for element in range(len(nub[number])):
+            #        if(nub[number][element]<=0):
+            #            print('False')
+            #        else:
+            #            print('True')
+
+            print("concrete ", nlb[-1])
+            # if(label == int(test[0])):
+            #if (label == int(test[0])):
+            if (True):
+                perturbed_label = None
+
+                if (dataset == 'demo_test2'):
+                    specLB = np.clip(image - epsilon, 0, 1)
+                    specUB = np.clip(image + epsilon, 0, 1)
+                    #specLB = image - epsilon
+                    #specUB = image + epsilon
+                else:
+                    if (is_trained_with_pytorch):
+                        specLB = np.clip(image - epsilon, 0, 1)
+                        specUB = np.clip(image + epsilon, 0, 1)
+                    else:
+                        specLB = np.clip(image - epsilon, -0.5, 0.5)
+                        specUB = np.clip(image + epsilon, -0.5, 0.5)
+                if (is_trained_with_pytorch):
+                    normalize(specLB, means, stds)
+                    normalize(specUB, means, stds)
+                start = time.time()
+                perturbed_label, _, nlb, nub = eran.analyze_box(specLB, specUB, domain, args.timeout_lp,
+                                                                args.timeout_milp, args.use_area_heuristic)
+                print("nlb ", nlb[len(nlb) - 1], " nub ", nub[len(nub) - 1])
+                if (perturbed_label == label):
+                    print("img", total_images, "Verified", label)
+                    verified_images += 1
+                else:
+                    if complete == True:
+                        verified_flag, adv_image = verify_network_with_milp(nn, specLB, specUB, label, nlb, nub)
+                        if (verified_flag == True):
+                            print("img", total_images, "Verified", label)
+                            verified_images += 1
+                        else:
+                            print("img", total_images, "Failed")
+                            cex_label, _, _, _ = eran.analyze_box(adv_image, adv_image, 'deepzono', args.timeout_lp,
+                                                                  args.timeout_milp, args.use_area_heuristic)
+                            if (cex_label != label):
+                                if (is_trained_with_pytorch):
+                                    denormalize(adv_image, means, stds)
+                                print(
+                                "adversarial image ", adv_image, "cex label", cex_label, "correct label ", label)
+                    else:
+                        print("img", total_images, "Failed")
+
+                correctly_classified_images += 1
+                end = time.time()
+                print(end - start, "seconds")
+            else:
+                print(
+                "img", total_images, "not considered, correct_label", int(test[0]), "classified label ", label)
+            total_images += 1
+        elif (dataset=='demo_test3'):
+            #if(dataset=='mnist'):
+            image = np.float64(test[1:len(test)])
+            nlb = np.asarray([[0.5]*2]*2)
+            nub = np.asarray([[0.5]*2]*2)
+            for j in range(0, 2):
+                if is_trained_with_pytorch:
+                    normalize(specLB_img, means, stds)
+                    normalize(specUB_img, means, stds)
+
+                nlb_array = (np.asarray(nlb[1]))
+                nub_array = (np.asarray(nub[1]))
+
+                specLB = nlb_array
+                specUB = nub_array
+
+                if j == 1:
+                    is_last_timestep = True
+                else:
+                    is_last_timestep = False
+
+                label, nn, nlb, nub = eran.analyze_box(specLB, specUB, init_domain(domain), args.timeout_lp,
+                                                       args.timeout_milp, args.use_area_heuristic)
+
+                # for number in range(len(nub)):
+                #    for element in range(len(nub[number])):
+                #        if(nub[number][element]<=0):
+                #            print('False')
+                #        else:
+                #            print('True')
+
+            print("concrete ", nlb[-1])
+
+            #if (label == int(test[0])):
+            if True:
+                perturbed_label = None
+
+                #verify perturbed image
+                image = np.float64(test[1:len(test)])
+
+                specLB_in = np.clip(image - epsilon, 0, 1)
+                specUB_in = np.clip(image + epsilon, 0, 1)
+
+                nlb = np.asarray([[specLB_in[0]] * 2] * 2)
+                nub = np.asarray([[specUB_in[0]] * 2] * 2)
+
+                start = time.time()
+
+                for k in range(0, 2):
+                    #image = image_full[j:j + 112]
+
+                    nlb_array = (np.asarray(nlb[1]))
+                    nub_array = (np.asarray(nub[1]))
+
+                    specLB = nlb_array
+                    specUB = nub_array
+
+
+                    perturbed_label, _, nlb, nub = eran.analyze_box(specLB, specUB, domain, args.timeout_lp,
+                                                                args.timeout_milp, args.use_area_heuristic)
+
+
+
+                print("nlb ", nlb[len(nlb) - 1], " nub ", nub[len(nub) - 1])
+                if (perturbed_label == label):
+                    print("img", total_images, "Verified", label)
+                    verified_images += 1
+                else:
+                    if complete == True:
+                        verified_flag, adv_image = verify_network_with_milp(nn, specLB, specUB, label, nlb, nub)
+                        if (verified_flag == True):
+                            print("img", total_images, "Verified", label)
+                            verified_images += 1
+                        else:
+                            print("img", total_images, "Failed")
+                            cex_label, _, _, _ = eran.analyze_box(adv_image, adv_image, 'deepzono',
+                                                                  args.timeout_lp, args.timeout_milp,
+                                                                  args.use_area_heuristic)
+                            if (cex_label != label):
+                                if (is_trained_with_pytorch):
+                                    denormalize(adv_image, means, stds)
+                                print("adversarial image ", adv_image, "cex label", cex_label, "correct label ",
+                                      label)
+                    else:
+                        print("img", total_images, "Failed")
+
+                correctly_classified_images += 1
+                end = time.time()
+                print(end - start, "seconds")
+            else:
+                print("img", total_images, "not considered, correct_label", int(test[0]), "classified label ",
+                      label)
+            total_images += 1
         else:
             if(dataset=='mnist'):
                 image= np.float64(test[1:len(test)])/np.float64(255)

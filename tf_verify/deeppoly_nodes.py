@@ -261,18 +261,18 @@ class DeeppolyReluNodeIntermediate(DeeppolyNode):
     def transformer(self, nn, man, element, nlb, nub, relu_groups, refine, timeout_lp, timeout_milp, use_area_heuristic):
         """
         transformer for any intermediate fully connected layer with relu
-        
+
         Arguments
         ---------
         man : ElinaManagerPtr
             man to which element belongs
         element : ElinaAbstract0Ptr
             abstract element onto which the transformer gets applied
-        
+
         Return
         ------
         output : ElinaAbstract0Ptr
-            abstract element after the transformer 
+            abstract element after the transformer
         """
         ffn_handle_intermediate_relu_layer(man, element, *self.get_arguments(), use_area_heuristic)
         layerno, bounds, num_neurons, lbi, ubi = calc_bounds(man, element, nn, nlb, nub, relu_groups, destroy = False)
@@ -415,6 +415,125 @@ class DeeppolyReluNodeLast(DeeppolyNode):
         #nn.ffn_counter+=1
         return element
 
+#sunbing ffn_handle_intermediate_affine_layer
+class DeeppolyAffineIntermediate(DeeppolyNode):
+    def transformer(self, nn, man, element, nlb, nub, relu_groups, refine, timeout_lp, timeout_milp,
+                    use_area_heuristic):
+        """
+        transformer for any intermediate fully connected layer with relu
+
+        Arguments
+        ---------
+        man : ElinaManagerPtr
+            man to which element belongs
+        element : ElinaAbstract0Ptr
+            abstract element onto which the transformer gets applied
+
+        Return
+        ------
+        output : ElinaAbstract0Ptr
+            abstract element after the transformer
+        """
+        #(man, element, weights, bias, num_out_neurons, num_in_neurons, predecessors, has_relu, use_area_heuristic)
+        #(man, element, weights, bias, num_out_neurons, num_in_neurons, predecessors, use_area_heuristic)
+        ffn_handle_intermediate_affine_layer(man, element, *self.get_arguments(), use_area_heuristic)
+        layerno, bounds, num_neurons, lbi, ubi = calc_bounds(man, element, nn, nlb, nub, relu_groups, destroy=False)
+        candidate_vars = [i for i, (l, u) in enumerate(zip(lbi, ubi)) if l < 0 and u > 0]
+        # print("lbi ", timeout_milp, "ubi ", timeout_lp)
+        if refine:
+            if layerno <= 1:
+                use_milp = config.use_milp
+            else:
+                use_milp = 0
+
+            if use_milp:
+                timeout = timeout_milp
+            else:
+                timeout = timeout_lp
+
+            if nn.is_ffn():
+                resl, resu, indices = get_bounds_for_layer_with_milp(nn, nn.specLB, nn.specUB, layerno, layerno,
+                                                                     num_neurons, nlb, nub, relu_groups, use_milp,
+                                                                     candidate_vars, timeout)
+
+                for j in indices:
+                    update_bounds_for_neuron(man, element, layerno, j, resl[j], resu[j])
+
+                nlb[-1] = resl
+                nub[-1] = resu
+
+            encode_krelu_cons(nn, man, element, 0, layerno, num_neurons, lbi, ubi, relu_groups, False, 'refinepoly')
+
+        elina_interval_array_free(bounds, num_neurons)
+        nn.ffn_counter += 1
+        return element
+
+
+'''
+class DeeppolyAffineIntermediate(DeeppolyNode):
+    def __init__(self, weights, bias, input_names, output_name, output_shape):
+        """
+        Arguments
+        ---------
+        weights : numpy.ndarray
+            matrix of the fully connected layer (must be 2D)
+        bias : numpy.ndarray
+            bias of the fully connected layer
+        relu_present : bool
+            whether this layer has relu or not
+        """
+        DeeppolyNode.__init__(self, weights, bias, input_names, output_name, output_shape)
+
+    def transformer(self, nn, man, element, nlb, nub, relu_groups, refine, timeout_lp, timeout_milp,
+                    use_area_heuristic):
+        """
+        transformer for a fully connected layer if it's the last layer in the network
+
+        Arguments
+        ---------
+        man : ElinaManagerPtr
+            man to which element belongs
+        element : ElinaAbstract0Ptr
+            abstract element onto which the transformer gets applied
+
+        Return
+        ------
+        output : ElinaAbstract0Ptr
+            abstract element after the transformer
+        """
+        #(man, element, weights, bias, num_out_neurons, num_in_neurons, predecessors, has_relu, use_area_heuristic)
+        #(man, element, weights, bias, num_out_neurons, num_in_neurons, predecessors, use_area_heuristic)
+        ffn_handle_intermediate_affine_layer(man, element, *self.get_arguments(), use_area_heuristic)
+
+        layerno, bounds, num_neurons, lbi, ubi = calc_bounds(man, element, nn, nlb, nub, relu_groups,
+                                                             destroy=False)  # sunbing disable
+        # candidate_vars = [i for i, (l, u) in enumerate(zip(lbi, ubi)) if l<0 and u>0]
+
+        # if(refine):
+        #    if layerno<=1:
+        #        use_milp = 1
+        #    else:
+        #        use_milp = 0
+
+        #    if use_milp:
+        #        timeout = timeout_milp
+        #    else:
+        #        timeout = timeout_lp
+
+        #    if nn.is_ffn():
+        #        resl, resu, indices = get_bounds_for_layer_with_milp(nn, nn.specLB, nn.specUB, layerno, layerno, num_neurons, nlb, nub, relu_groups, use_milp,  candidate_vars, timeout)
+        #        for j in indices:
+        #            update_bounds_for_neuron(man,element,layerno,j,resl[j],resu[j])
+
+        # print("resl ", resl, "resu ", resu)
+        #        nlb[-1] = resl
+        #        nub[-1] = resu
+        #    encode_krelu_cons(nn, man, element, 0, layerno, num_neurons, lbi, ubi, relu_groups, False, 'refinepoly')
+
+        # elina_interval_array_free(bounds,num_neurons)
+        # nn.ffn_counter+=1
+        return element
+'''
 
 class DeeppolySigmoidNodeLast(DeeppolyNode):
     def __init__(self, weights, bias, sigmoid_present, input_names, output_name, output_shape):

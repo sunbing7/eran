@@ -340,6 +340,9 @@ class Optimizer:
                         output.append(DeeppolySigmoidNodeIntermediate(matrix, bias, input_names, output_name, output_shape))
                     elif(self.operations[i+2]=="Tanh"):
                         output.append(DeeppolyTanhNodeIntermediate(matrix, bias, input_names, output_name, output_shape))
+                    elif(self.operations[i+2]=="MatMul"): #sunbing
+                        output.append(DeeppolyAffineIntermediate(matrix, bias, input_names, output_name, output_shape))
+                        i -= 1
                     else:
                         assert 0
                     i += 3

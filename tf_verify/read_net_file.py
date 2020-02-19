@@ -39,6 +39,15 @@ def extract_std(text):
         std_array[i] = np.float64(std_str[i])
     return std_array
 
+
+def extract_timestep(text):
+    timestep = ''
+    m = re.search(': (.+?)', text)
+
+    if m:
+        timestep = m.group(1)
+    return np.int(timestep)
+
 def numel(x):
     return product([int(i) for i in x.shape])
 
@@ -76,8 +85,8 @@ def read_tensorflow_net(net_file, in_len, is_trained_with_pytorch):
     is_conv = False
 
     #sunbing
-    timestep = 7
     is_vanilarnn = False
+    timestep = 0
 
     while True:
         curr_line = net.readline()[:-1]
@@ -199,8 +208,8 @@ def read_tensorflow_net(net_file, in_len, is_trained_with_pytorch):
                 x = tf.nn.bias_add(x, b)
             else:
                 raise Exception("Unsupported activation: ", curr_line)
-        elif curr_line == "time_step: 7":
-            timestep = 7
+        elif 'time_step' in curr_line:
+            timestep = extract_timestep(curr_line)
         elif curr_line == "Vanilla":
             is_vanilarnn = True
         elif curr_line == "":
